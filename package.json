@@ -1,0 +1,7 @@
+{
+  "name": "building",
+  "version": "1.0.0",
+  "main": "index.js",
+  "author": "Wouter de Vos <wouter@codaisseur.com>",
+  "license": "MIT"
+}
