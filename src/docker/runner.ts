@@ -1,3 +1,4 @@
+import chalk from "chalk";
 import * as path from "path";
 import * as Stream from "stream";
 
@@ -12,6 +13,7 @@ export interface IRunner {
   image: string;
   command?: string[];
   env?: IEnv;
+  rm?: boolean;
 }
 
 export class Runner {
@@ -29,20 +31,25 @@ export class Runner {
   public container: string;
   public command: string[] | undefined;
   public env: IEnv = {};
+  public logStream: Stream.PassThrough;
+  public rm: boolean = true;
 
-  constructor({ image, command, env }: IRunner) {
+  constructor({ image, command, env, rm }: IRunner) {
     this.env = env || {};
     this.image = image;
     this.command = command;
+    if (rm !== undefined) { this.rm = rm; }
   }
 
   public async start() {
     const container = await this.getContainer();
+    this.logStream.push(chalk.grey("Starting container..."));
     return container.start();
   }
 
   public async stop() {
     const container = await this.getContainer();
+    this.logStream.push(chalk.grey("Stopping container..."));
     return container.stop();
   }
 
@@ -57,19 +64,7 @@ export class Runner {
   public async followContainerLogs() {
     const container = await this.getContainer();
 
-    // create a single stream for stdin and stdout
-    const logStream = new Stream.PassThrough();
-
-    logStream.on("data", chunk => {
-      const logString = chunk.toString("utf8");
-      console.log(logString);
-      io.emit("container_logs", {
-        container: this.container,
-        data: logString,
-      });
-    });
-
-    logStream.push("Starting container...");
+    this.logStream.push(chalk.grey("Attaching container logs..."));
 
     const stream = await container.logs({
       follow: true,
@@ -77,18 +72,43 @@ export class Runner {
       stdout: true,
     });
 
-    container.modem.demuxStream(stream, logStream, logStream);
+    container.modem.demuxStream(stream, this.logStream, this.logStream);
 
-    stream.on("end", () => {
-      console.log("Stream ended!");
-      logStream.end("!stop!");
-      container.remove();
+    stream.on("end", async () => {
+      console.log(chalk.grey("Stream ended."));
+      if (this.rm) {
+        this.remove();
+      }
     });
+  }
+
+  public async remove() {
+    const container = await this.getContainer();
+
+    this.logStream.push(chalk.grey("Cleaning up container..."));
+    await container.remove();
+    this.logStream.end(chalk.green("Done!"));
   }
 
   private createEnv() {
     return Object.keys(this.env)
       .map(key => `${key}=${this.env[key]}`);
+  }
+
+  private createLogStream() {
+    if (this.logStream) { return; }
+
+    this.logStream = new Stream.PassThrough();
+
+    this.logStream.on("data", chunk => {
+      const logString = chunk.toString("utf8");
+      console.log(logString);
+
+      io.emit("container_logs", {
+        container: this.container,
+        data: logString,
+      });
+    });
   }
 
   private async create() {
@@ -108,5 +128,6 @@ export class Runner {
     });
 
     this.container = container.id;
+    this.createLogStream();
   }
 }

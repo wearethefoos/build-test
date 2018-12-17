@@ -39,15 +39,12 @@ export default class BuildsController {
   @Get("/test")
   public async test() {
     try {
-      console.log("Creating runner...");
       const runner = new Runner({
         image: "library/hello-world",
       });
 
-      console.log("Starting runner...");
       await runner.start();
 
-      console.log("Starting logging...");
       runner.followContainerLogs();
 
       return { success: true };

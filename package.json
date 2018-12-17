@@ -16,6 +16,7 @@
     "@types/koa-router": "^7.0.35",
     "@types/pg": "^7.4.11",
     "@types/socket.io": "^2.1.2",
+    "chalk": "^2.4.1",
     "config": "^3.0.0",
     "dockerode": "^2.5.7",
     "koa": "^2.6.2",
