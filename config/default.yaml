@@ -3,3 +3,6 @@ docker:
 
 build-trigger:
   image: quay.io/codaisseur/codaisseur-ts-runner
+
+database:
+  url: postgres://codaisseur:codaisseur@localhost:5432/codaisseur

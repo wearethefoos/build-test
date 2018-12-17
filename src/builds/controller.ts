@@ -9,6 +9,7 @@ import {
 
 import { Runner } from "../docker/runner";
 import { IPushEvent } from "../lib/github";
+import Build from "./entity";
 
 export interface IBuildTriggerConfig {
   image: string;
@@ -25,31 +26,14 @@ export default class BuildsController {
   ) {
     const { image } = options;
 
-    try {
-      console.log("Creating runner...");
-      const env = {
-        GIT_REF: pushEvent.ref || "refs/heads/master",
-        REPO_URL: pushEvent.repository.clone_url,
-      };
+    const build = Build.create({
+      command: ["/builder/build-scripts/init.sh"],
+      gitRef: pushEvent.ref,
+      image,
+      repoUrl: pushEvent.repository.clone_url,
+    });
 
-      console.log(env);
-      const runner = new Runner({
-        command: ["/builder/build-scripts/init.sh"],
-        env,
-        image,
-      });
-
-      console.log("Starting runner...");
-      await runner.start();
-
-      console.log("Starting logging...");
-      runner.followContainerLogs();
-
-    } catch (err) {
-      console.error(err);
-    }
-
-    return { success: true };
+    return build.save();
   }
 
   @Get("/test")

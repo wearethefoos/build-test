@@ -5,6 +5,8 @@ import * as Koa from "koa";
 import { useKoaServer } from "routing-controllers";
 import * as IO from "socket.io";
 
+import setupDb from "./db";
+
 import BuildsController from "./builds/controller";
 
 const app = new Koa();
@@ -26,5 +28,9 @@ io.on("connect", socket => {
   });
 });
 
-server.listen(port);
-console.log(`Builder listening on port ${port}`);
+setupDb()
+  .then(_ => {
+    server.listen(port);
+    console.log(`Builder listening on port ${port}`);
+  })
+  .catch(err => console.error(err));

@@ -15,6 +15,16 @@ export interface IRunner {
 }
 
 export class Runner {
+
+  public static async removeContainer(containerId: string) {
+    const container = await docker.getContainer(containerId);
+
+    if (container) {
+      console.log(`Removing container ${containerId}`);
+      container.remove();
+    }
+  }
+
   public image: string;
   public container: string;
   public command: string[] | undefined;
@@ -59,13 +69,13 @@ export class Runner {
       });
     });
 
+    logStream.push("Starting container...");
+
     const stream = await container.logs({
       follow: true,
       stderr: true,
       stdout: true,
     });
-
-    console.log("Stream is set up!");
 
     container.modem.demuxStream(stream, logStream, logStream);
 
