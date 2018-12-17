@@ -31,7 +31,7 @@ export class Runner {
   public container: string;
   public command: string[] | undefined;
   public env: IEnv = {};
-  public logStream: Stream.PassThrough;
+  public stdout: Stream.PassThrough;
   public rm: boolean = true;
 
   constructor({ image, command, env, rm }: IRunner) {
@@ -43,13 +43,13 @@ export class Runner {
 
   public async start() {
     const container = await this.getContainer();
-    this.logStream.push(chalk.grey("Starting container..."));
+    this.stdout.push(chalk.grey("Starting container..."));
     return container.start();
   }
 
   public async stop() {
     const container = await this.getContainer();
-    this.logStream.push(chalk.grey("Stopping container..."));
+    this.stdout.push(chalk.grey("Stopping container..."));
     return container.stop();
   }
 
@@ -64,7 +64,7 @@ export class Runner {
   public async followContainerLogs() {
     const container = await this.getContainer();
 
-    this.logStream.push(chalk.grey("Attaching container logs..."));
+    this.stdout.push(chalk.grey("Attaching container logs..."));
 
     const stream = await container.logs({
       follow: true,
@@ -72,7 +72,7 @@ export class Runner {
       stdout: true,
     });
 
-    container.modem.demuxStream(stream, this.logStream, this.logStream);
+    container.modem.demuxStream(stream, this.stdout, this.stdout);
 
     stream.on("end", async () => {
       console.log(chalk.grey("Stream ended."));
@@ -85,9 +85,9 @@ export class Runner {
   public async remove() {
     const container = await this.getContainer();
 
-    this.logStream.push(chalk.grey("Cleaning up container..."));
+    this.stdout.push(chalk.grey("Cleaning up container..."));
     await container.remove();
-    this.logStream.end(chalk.green("Done!"));
+    this.stdout.end(chalk.green("Done!"));
   }
 
   private createEnv() {
@@ -95,18 +95,19 @@ export class Runner {
       .map(key => `${key}=${this.env[key]}`);
   }
 
-  private createLogStream() {
-    if (this.logStream) { return; }
+  private createstdout() {
+    if (this.stdout) { return; }
 
-    this.logStream = new Stream.PassThrough();
+    this.stdout = new Stream.PassThrough();
 
-    this.logStream.on("data", chunk => {
+    this.stdout.on("data", chunk => {
       const logString = chunk.toString("utf8");
       console.log(logString);
 
       io.emit("container_logs", {
         container: this.container,
         data: logString,
+        log: "stdout",
       });
     });
   }
@@ -128,6 +129,6 @@ export class Runner {
     });
 
     this.container = container.id;
-    this.createLogStream();
+    this.createstdout();
   }
 }

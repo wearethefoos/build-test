@@ -23,6 +23,9 @@ export default class Build extends BaseEntity {
   @Column("text", { nullable: false, name: "git_ref", default: "refs/heads/master" })
   public gitRef: string;
 
+  @Column("text", { nullable: false, default: "" })
+  public stdout: string;
+
   @CreateDateColumn({ nullable: false, name: "created_at" })
   public createdAt: Date;
 
@@ -53,6 +56,16 @@ export default class Build extends BaseEntity {
 
       console.log("Starting logging...");
       runner.followContainerLogs();
+
+      this.stdout = "";
+
+      runner.stdout.on("data", chunk => {
+        this.stdout += chunk.toString("utf8");
+      });
+
+      runner.stdout.on("end", () => {
+        this.save();
+      });
 
     } catch (err) {
       console.error(err);
